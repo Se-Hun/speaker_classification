@@ -1,5 +1,4 @@
 import os
-import csv
 import argparse
 
 import pandas as pd
@@ -17,13 +16,11 @@ def split_data(fns, task, seed):
 
     data = pd.read_csv(in_fn, sep='\t', index_col=0)
 
-    # data = pd.DataFrame(csv.reader(f, delimiter="\t", index_col=0))
-
     train_data, test_data = train_test_split(data, test_size=0.2, random_state=seed)
 
-    train_data.to_csv(to_train_fn, index=False, sep="\t")
+    train_data.to_csv(to_train_fn, sep="\t")
     print("[Train] {} data is dumped at  ".format(task), to_train_fn)
-    test_data.to_csv(to_test_fn, index=False, sep="\t")
+    test_data.to_csv(to_test_fn, sep="\t")
     print("[Test] {} data is dumped at  ".format(task), to_test_fn)
 
 

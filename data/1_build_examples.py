@@ -52,8 +52,7 @@ def build_examples(fns, task, task_process_function, task_column_names):
 
     df = pd.DataFrame(data, columns=task_column_names[task])
 
-    # df.to_csv(to_fn, index=False, header=None, sep="\t")
-    df.to_csv(to_fn, sep="\t")
+    df.to_csv(to_fn, index=False, sep="\t")
     print("{} data is dumped at ".format(task), to_fn)
 
 
