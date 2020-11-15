@@ -136,3 +136,6 @@ dmypy.json
 
 # for pycharm
 .idea/
+
+# for tensorboard
+tb/
