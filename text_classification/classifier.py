@@ -9,10 +9,10 @@ from transformers import BertForSequenceClassification, BertTokenizer, AdamW
 from text_classification.data_processor import text_classification_processors, convert_examples_to_features
 
 
-def get_dataloader(task_name, tokenizer, data_dir, data_processor, batch_size=32):
+def get_dataloader(task_name, tokenizer, data_dir, data_processor, max_seq_length=128, batch_size=32):
     train_examples = data_processor.get_train_examples(data_dir)
 
-    train_features = convert_examples_to_features(train_examples, tokenizer, max_length=40, task_name=task_name)
+    train_features = convert_examples_to_features(train_examples, tokenizer, max_seq_length, task_name=task_name)
     train_dataset = TensorDataset(torch.tensor([f.input_ids for f in train_features], dtype=torch.long),
                                   torch.tensor([f.attention_mask for f in train_features], dtype=torch.long),
                                   torch.tensor([f.token_type_ids for f in train_features], dtype=torch.long),
@@ -22,7 +22,7 @@ def get_dataloader(task_name, tokenizer, data_dir, data_processor, batch_size=32
     train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=batch_size)
 
     val_examples = data_processor.get_dev_examples(data_dir)
-    val_features = convert_examples_to_features(val_examples, tokenizer, max_length=40, task_name=task_name)
+    val_features = convert_examples_to_features(val_examples, tokenizer, max_seq_length, task_name=task_name)
     val_dataset = TensorDataset(torch.tensor([f.input_ids for f in val_features], dtype=torch.long),
                                 torch.tensor([f.attention_mask for f in val_features], dtype=torch.long),
                                 torch.tensor([f.token_type_ids for f in val_features], dtype=torch.long),
@@ -31,7 +31,7 @@ def get_dataloader(task_name, tokenizer, data_dir, data_processor, batch_size=32
     val_dataloader = DataLoader(val_dataset, sampler=val_sampler, batch_size=batch_size)
 
     test_examples = data_processor.get_test_examples(data_dir)
-    test_features = convert_examples_to_features(test_examples, tokenizer, max_length=40, task_name=task_name)
+    test_features = convert_examples_to_features(test_examples, tokenizer, max_seq_length, task_name=task_name)
     test_dataset = TensorDataset(torch.tensor([f.input_ids for f in test_features], dtype=torch.long),
                                  torch.tensor([f.attention_mask for f in test_features], dtype=torch.long),
                                  torch.tensor([f.token_type_ids for f in test_features], dtype=torch.long),
@@ -43,7 +43,7 @@ def get_dataloader(task_name, tokenizer, data_dir, data_processor, batch_size=32
 
 
 class TextClassifier(pl.LightningModule):
-    def __init__(self, task_name, data_dir, batch_size):
+    def __init__(self, task_name, data_dir, max_seq_length, batch_size):
         super(TextClassifier, self).__init__()
         self.task_name = task_name
 
@@ -52,6 +52,7 @@ class TextClassifier(pl.LightningModule):
         num_labels = self.data_processor.get_num_labels()
 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+        self.max_seq_length = max_seq_length
 
         model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased", num_labels=num_labels)
         self.model = model
@@ -61,6 +62,7 @@ class TextClassifier(pl.LightningModule):
             self.tokenizer,
             self.data_dir,
             self.data_processor,
+            self.max_seq_length,
             batch_size
         )
 

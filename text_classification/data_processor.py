@@ -2,9 +2,9 @@ import os
 
 from transformers import DataProcessor, InputExample, InputFeatures
 
-def convert_examples_to_features(examples, tokenizer, max_length, task_name=None, label_list=None, output_mode=None):
-    if max_length is None:
-        max_length = tokenizer.max_len
+def convert_examples_to_features(examples, tokenizer, max_seq_length, task_name=None, label_list=None, output_mode=None):
+    if max_seq_length is None:
+        max_seq_length = tokenizer.max_len
 
     if task_name is not None:
         processor = text_classification_processors[task_name]()
@@ -27,7 +27,7 @@ def convert_examples_to_features(examples, tokenizer, max_length, task_name=None
 
     batch_encoding = tokenizer(
         [(example.text_a, example.text_b) for example in examples],
-        max_length=max_length,
+        max_length=max_seq_length,
         padding="max_length",
         truncation=True,
     )
@@ -81,8 +81,8 @@ class TurnChangeProcessor(DataProcessor):
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
         # for debugging
-        # N = 70
-        # lines = lines[:N]
+        N = 40000
+        lines = lines[:N]
 
         examples = []
         for (i, line) in enumerate(lines):
