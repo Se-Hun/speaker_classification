@@ -15,6 +15,37 @@ def build_turn_change_exmaple(origin_ex):
 
     examples = []
     utterances = document[0]["utterance"]
+    for u_idx in range(0, len(utterances) - 2, 3):
+        first_utterance = utterances[u_idx]
+        second_utterance = utterances[u_idx + 1]
+        target_utterance = utterances[u_idx + 2]
+
+        first_id = first_utterance["id"]
+        second_id = second_utterance["id"]
+        target_id = target_utterance["id"]
+
+        first_text = first_utterance["form"].replace("\n", " ")
+        second_text = second_utterance["form"].replace("\n", " ")
+        target_text = target_utterance["form"].replace("\n", " ")
+
+        label = 0 if second_utterance["speaker_id"] == target_utterance["speaker_id"] else 1  # speaker가 같으면 0, 틀리면 1
+
+        # remove data using emoticon, uploading photos ect...
+        if first_text == "" or second_text == "" or target_text == "":
+            continue
+
+        example = [[first_id, second_id], target_id, first_text + " " + second_text, target_text, label]
+        examples.append(example)
+
+    return examples
+
+def build_turn_change_exmaple_document(origin_ex):
+    id = origin_ex["id"]
+    document = origin_ex["document"]
+    assert (len(document) == 1), "Document has more than two data at {}".format(id)
+
+    examples = []
+    utterances = document[0]["utterance"]
 
     # text_store = ""
     text_ids = []
@@ -114,8 +145,8 @@ if __name__ == '__main__':
         "turn_change" : build_turn_change_exmaple
     }
     task_column_names = {
-        # "turn_change" : ["utterance1_id", "utterance2_id", "utterance1", "utterance2", "label"]
-        "turn_change": ["utterance1_ids", "utterance2_id", "label"]
+        "turn_change" : ["utterance1_ids", "utterance2_id", "utterance1", "utterance2", "label"]
+        # "turn_change": ["utterance1_ids", "utterance2_id", "label"]
     }
 
     build_examples(fns, task, task_process_function, task_column_names)
