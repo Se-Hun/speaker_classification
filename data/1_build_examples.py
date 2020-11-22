@@ -15,6 +15,43 @@ def build_turn_change_exmaple(origin_ex):
 
     examples = []
     utterances = document[0]["utterance"]
+
+    # text_store = ""
+    text_ids = []
+    prev_speaker_id = -1
+    for u_idx, utterance in enumerate(utterances):
+        id = utterance["id"]
+        utterance_text = utterance["form"].replace("\n", " ")
+        speaker_id = utterance["speaker_id"]
+
+        if utterance_text == "":
+            continue
+
+        label = 0 if prev_speaker_id == speaker_id else 1 # 마지막 speaker와 현재 speaker가 같으면 0, 틀리면 1
+
+        if u_idx == 0:
+            # text_store = text_store + " " + utterance_text
+            text_ids.append(id)
+            prev_speaker_id = speaker_id
+            continue
+
+        example = [text_ids, id, label]
+        # example = [text_store, utterance_text, label]
+        examples.append(example)
+
+        text_ids.append(id)
+        # text_store = text_store + " " + utterance_text
+
+    return examples
+
+
+def buil_turn_change_example_previous(origin_ex):
+    id = origin_ex["id"]
+    document = origin_ex["document"]
+    assert (len(document) == 1), "Document has more than two data at {}".format(id)
+
+    examples = []
+    utterances = document[0]["utterance"]
     for u_idx in range(len(utterances)-1):
         first_utterance = utterances[u_idx]
         second_utterance = utterances[u_idx+1]
@@ -43,8 +80,8 @@ def build_examples(fns, task, task_process_function, task_column_names):
         original_data = json.load(f)
 
         # for debugging
-        # N = 70
-        # original_data = original_data[:N]
+        N = 70
+        original_data = original_data[:N]
 
         data_iterator = tqdm(original_data, desc="Iteration")
         for ex_idx, ex in enumerate(data_iterator):
@@ -77,7 +114,8 @@ if __name__ == '__main__':
         "turn_change" : build_turn_change_exmaple
     }
     task_column_names = {
-        "turn_change" : ["utterance1_id", "utterance2_id", "utterance1", "utterance2", "label"]
+        # "turn_change" : ["utterance1_id", "utterance2_id", "utterance1", "utterance2", "label"]
+        "turn_change": ["utterance1_ids", "utterance2_id", "label"]
     }
 
     build_examples(fns, task, task_process_function, task_column_names)
