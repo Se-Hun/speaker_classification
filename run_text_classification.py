@@ -60,10 +60,10 @@ if __name__ == '__main__':
     model = TextClassifier(task_name, data_dir, max_seq_length, batch_size)
 
     # setting gpu ------------------------------------------------------------------------------------------------------
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     # init pytorch lightning trainer -----------------------------------------------------------------------------------
-    trainer = pl.Trainer(gpus=1,
+    trainer = pl.Trainer(gpus=args.gpu_id,
                          logger=tb_logger,
                          callbacks=[early_stop_callback])
 

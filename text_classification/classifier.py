@@ -6,38 +6,44 @@ import pytorch_lightning as pl
 
 from transformers import BertForSequenceClassification, BertTokenizer, AdamW
 
-from text_classification.data_processor import text_classification_processors, convert_examples_to_features
+from text_classification.data_processor import text_classification_processors, convert_examples_to_features, \
+    convert_examples_to_features_using_batch_encoding
 
 
 def get_dataloader(task_name, tokenizer, data_dir, data_processor, max_seq_length=128, batch_size=32):
-    train_examples = data_processor.get_train_examples(data_dir)
+    label_list = data_processor.get_labels()
+    output_mode = "classification"
 
-    train_features = convert_examples_to_features(train_examples, tokenizer, max_seq_length, task_name=task_name)
+    train_examples = data_processor.get_train_examples(data_dir)
+    train_features, num_tokens = convert_examples_to_features(train_examples, label_list, max_seq_length, tokenizer, output_mode)
+    # train_features = convert_examples_to_features_using_batch_encoding(train_examples, tokenizer, max_seq_length, task_name=task_name)
     train_dataset = TensorDataset(torch.tensor([f.input_ids for f in train_features], dtype=torch.long),
                                   torch.tensor([f.attention_mask for f in train_features], dtype=torch.long),
                                   torch.tensor([f.token_type_ids for f in train_features], dtype=torch.long),
                                   torch.tensor([f.label for f in train_features], dtype=torch.long))
 
     train_sampler = RandomSampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=batch_size)
+    train_dataloader = DataLoader(train_dataset, sampler=train_sampler, batch_size=batch_size, num_workers=4)
 
     val_examples = data_processor.get_dev_examples(data_dir)
-    val_features = convert_examples_to_features(val_examples, tokenizer, max_seq_length, task_name=task_name)
+    val_features, num_tokens = convert_examples_to_features(val_examples, label_list, max_seq_length, tokenizer, output_mode)
+    # val_features = convert_examples_to_features_using_batch_encoding(val_examples, tokenizer, max_seq_length, task_name=task_name)
     val_dataset = TensorDataset(torch.tensor([f.input_ids for f in val_features], dtype=torch.long),
                                 torch.tensor([f.attention_mask for f in val_features], dtype=torch.long),
                                 torch.tensor([f.token_type_ids for f in val_features], dtype=torch.long),
                                 torch.tensor([f.label for f in val_features], dtype=torch.long))
     val_sampler = SequentialSampler(val_dataset)
-    val_dataloader = DataLoader(val_dataset, sampler=val_sampler, batch_size=batch_size)
+    val_dataloader = DataLoader(val_dataset, sampler=val_sampler, batch_size=batch_size, num_workers=4)
 
     test_examples = data_processor.get_test_examples(data_dir)
-    test_features = convert_examples_to_features(test_examples, tokenizer, max_seq_length, task_name=task_name)
+    test_features, num_tokens = convert_examples_to_features(test_examples, label_list, max_seq_length, tokenizer, output_mode)
+    # test_features = convert_examples_to_features_using_batch_encoding(test_examples, tokenizer, max_seq_length, task_name=task_name)
     test_dataset = TensorDataset(torch.tensor([f.input_ids for f in test_features], dtype=torch.long),
                                  torch.tensor([f.attention_mask for f in test_features], dtype=torch.long),
                                  torch.tensor([f.token_type_ids for f in test_features], dtype=torch.long),
                                  torch.tensor([f.label for f in test_features], dtype=torch.long))
     test_sampler = SequentialSampler(test_dataset)
-    test_dataloader = DataLoader(test_dataset, sampler=test_sampler, batch_size=batch_size)
+    test_dataloader = DataLoader(test_dataset, sampler=test_sampler, batch_size=batch_size, num_workers=4)
 
     return train_dataloader, val_dataloader, test_dataloader
 

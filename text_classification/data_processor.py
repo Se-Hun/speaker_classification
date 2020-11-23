@@ -1,8 +1,12 @@
 import os
+import csv
+import json
 
 from transformers import DataProcessor, InputExample, InputFeatures
 
-def convert_examples_to_features(examples, tokenizer, max_seq_length, task_name=None, label_list=None, output_mode=None):
+csv.field_size_limit(1000000000000)
+
+def convert_examples_to_features_using_batch_encoding(examples, tokenizer, max_seq_length, task_name=None, label_list=None, output_mode=None):
     if max_seq_length is None:
         max_seq_length = tokenizer.max_len
 
@@ -46,6 +50,116 @@ def convert_examples_to_features(examples, tokenizer, max_seq_length, task_name=
 
     return features
 
+def _truncate_seq_pair(tokens_a, tokens_b, max_length):
+    """Truncates a sequence pair in place to the maximum length."""
+
+    # This is a simple heuristic which will always truncate the longer sequence
+    # one token at a time. This makes more sense than truncating an equal percent
+    # of tokens from each, since if one sequence is very short then each token
+    # that's truncated likely contains more information than a longer sequence.
+
+    # for debugging
+    # total_length = len(tokens_a) + len(tokens_b)
+    # assert (total_length <= max_length), "Beyond Max Sequence Length. total_token_length is {}, max_length is {}".format(total_length, max_length)
+
+    while True:
+        total_length = len(tokens_a) + len(tokens_b)
+        if total_length <= max_length:
+            break
+        if len(tokens_a) > len(tokens_b):
+            tokens_a.pop()
+        else:
+            tokens_b.pop()
+
+# this code is from https://github.com/huggingface/pytorch-pretrained-BERT/blob/master/examples/run_classifier.py
+def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer, output_mode):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    label_map = {label: i for i, label in enumerate(label_list)}
+
+    features = []
+    num_tokens = []
+
+    from tqdm.auto import tqdm
+    example_iterator = tqdm(examples, desc="Iteration")
+
+    for (ex_index, example) in enumerate(example_iterator):
+        tokens_a = tokenizer.tokenize(example.text_a)
+        num_tokens.append(len(tokens_a))
+
+        tokens_b = None
+        if example.text_b:
+            tokens_b = tokenizer.tokenize(example.text_b)
+            # Modifies `tokens_a` and `tokens_b` in place so that the total
+            # length is less than the specified length.
+            # Account for [CLS], [SEP], [SEP] with "- 3"
+            _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - 3)
+        else:
+            # Account for [CLS] and [SEP] with "- 2"
+            if len(tokens_a) > max_seq_length - 2:
+                tokens_a = tokens_a[:(max_seq_length - 2)]
+
+        # The convention in BERT is:
+        # (a) For sequence pairs:
+        #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
+        #  type_ids: 0   0  0    0    0     0       0 0    1  1  1  1   1 1
+        # (b) For single sequences:
+        #  tokens:   [CLS] the dog is hairy . [SEP]
+        #  type_ids: 0   0   0   0  0     0 0
+        #
+        # Where "type_ids" are used to indicate whether this is the first
+        # sequence or the second sequence. The embedding vectors for `type=0` and
+        # `type=1` were learned during pre-training and are added to the wordpiece
+        # embedding vector (and position vector). This is not *strictly* necessary
+        # since the [SEP] token unambiguously separates the sequences, but it makes
+        # it easier for the model to learn the concept of sequences.
+        #
+        # For classification tasks, the first vector (corresponding to [CLS]) is
+        # used as as the "sentence vector". Note that this only makes sense because
+        # the entire model is fine-tuned.
+        tokens = ["[CLS]"] + tokens_a + ["[SEP]"]
+        token_type_ids = [0] * len(tokens)
+
+        if tokens_b:
+            tokens += tokens_b + ["[SEP]"]
+            token_type_ids += [1] * (len(tokens_b) + 1)
+
+        input_ids = tokenizer.convert_tokens_to_ids(tokens)
+
+        # The mask has 1 for real tokens and 0 for padding tokens. Only real
+        # tokens are attended to.
+        attention_mask = [1] * len(input_ids)
+
+        # Zero-pad up to the sequence length.
+        padding = [0] * (max_seq_length - len(input_ids))
+        input_ids += padding
+        attention_mask += padding
+        token_type_ids += padding
+
+        assert len(input_ids) == max_seq_length
+        assert len(attention_mask) == max_seq_length
+        assert len(token_type_ids) == max_seq_length
+
+        if output_mode == "classification":
+            label = label_map[example.label]
+        elif output_mode == "regression":
+            label = float(example.label)
+        else:
+            raise KeyError(output_mode)
+
+        features.append(
+            InputFeatures(input_ids=input_ids,
+                          attention_mask=attention_mask,
+                          token_type_ids=token_type_ids,
+                          label=label))
+
+    for i, example in enumerate(examples[:5]):
+        print("*** Example ***")
+        print("guid: %s" % (example.guid))
+        print("features: %s" % features[i])
+
+    return features, num_tokens
+
 class TurnChangeProcessor(DataProcessor):
     """Processor for the Turn Change data set."""
 
@@ -62,14 +176,17 @@ class TurnChangeProcessor(DataProcessor):
 
     def get_train_examples(self, data_dir):
         print("train data is loading at {}".format(data_dir))
+        # return self._create_examples(self._read_json(os.path.join(data_dir, "train.json")), "train")
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         print("val data is loading at {}".format(data_dir))
+        # return self._create_examples(self._read_json(os.path.join(data_dir, "test.json")), "dev")
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "dev") # In current, fixed at test.tsv
 
     def get_test_examples(self, data_dir):
         print("test data is loading at {}".format(data_dir))
+        # return self._create_examples(self._read_json(os.path.join(data_dir, "test.json")), "test")
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
     def get_labels(self):
@@ -78,9 +195,49 @@ class TurnChangeProcessor(DataProcessor):
     def get_num_labels(self):
         return len(self.get_labels())
 
+    def _read_json(self, fn):
+        examples = []
+        with open(fn, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+            for ex in data:
+                utterances = ex["document"][0]["utterance"]
+                input_utterances, target_utterance = utterances[:-1], utterances[-1]
+
+                input_text = ""
+                for v in input_utterances:
+                    text = v["form"].replace("\n", " ")
+                    input_text = input_text + " " + text
+                last_speaker = input_utterances[-1]["speaker_id"]
+
+                target_text = target_utterance["form"].replace("\n", " ")
+                target_speaker = target_utterance["speaker_id"]
+
+                label = "0" if last_speaker == target_speaker else "1"  # speaker가 같으면 0, 틀리면 1
+                example = [input_text, target_text, label]
+                examples.append(example)
+
+        return examples
+
+    # def _create_examples(self, examples, set_type):
+    #     # for debugging
+    #     N = 40
+    #     examples = examples[:N]
+    #
+    #     examples_for_model = []
+    #     for i, ex in enumerate(examples):
+    #         guid = "%s-%s" % (set_type, i)
+    #         text_a = ex[0]
+    #         text_b = ex[1]
+    #         label = ex[2]
+    #         # label = None if set_type == "test" else line[4]
+    #         examples_for_model.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+    #     return examples_for_model
+
     def _create_examples(self, lines, set_type):
         """Creates examples for the training, dev and test sets."""
         # for debugging
+        # N = 40
         N = 40000
         lines = lines[:N]
 
