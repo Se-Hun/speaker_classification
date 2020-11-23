@@ -34,6 +34,8 @@ if __name__ == '__main__':
     task = args.task
     seed = args.seed
 
+    # in_folder = os.path.join("./", task + "_temp")
+    # to_folder = os.path.join("./", task + "_temp", "run")
     in_folder = os.path.join("./", task)
     to_folder = os.path.join("./", task, "run")
     prepare_dir(to_folder)

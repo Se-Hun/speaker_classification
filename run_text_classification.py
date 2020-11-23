@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     # init pytorch lightning trainer -----------------------------------------------------------------------------------
-    trainer = pl.Trainer(gpus=args.gpu_id,
+    trainer = pl.Trainer(gpus= ["1", "4"], #args.gpu_id,
                          logger=tb_logger,
                          callbacks=[early_stop_callback])
 

@@ -253,6 +253,64 @@ class TurnChangeProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+class TopicProcessor(DataProcessor):
+    """Processor for the Topic Prediction data set."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence1"].numpy().decode("utf-8"),
+            tensor_dict["sentence2"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        print("train data is loading at {}".format(data_dir))
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+    def get_dev_examples(self, data_dir):
+        print("val data is loading at {}".format(data_dir))
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "dev")  # In current, fixed at test.tsv
+
+    def get_test_examples(self, data_dir):
+        print("test data is loading at {}".format(data_dir))
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+    def get_labels(self):
+        return ["일상", "공공 서비스 (전화, 통신, 인터넷 서비스, 관공서)", "교육 및 학교 (교과목, 진로, 입시, 성적, 스터디)",
+                "주거와 생활 (집안일, 육아, 부동산, 경제 활동, 생활 정보)", "예술, 문화 생활 (문학, 음악, 미술, 공연, 전시, 관람)",
+                "교통 (위치, 거리, 이동 수단, 대중교통)", "여행 (여행지, 계획 등), 주거와 생활 (집안일, 육아, 부동산, 경제 활동, 생활 정보)",
+                "행사 및 모임(초대, 방문, 소개팅, 약속, 친목 모임)", "식음료 (식사, 음식, 배달, 맛집, 요리)",
+                "시사, 사회 (정치, 경제, 여론, 사건과 사고)", "일과 직업 (취업, 스펙, 업무, 급여, 회의)", "상거래(쇼핑)",
+                "여행 (여행지, 계획 등)", "여가와 오락 (유흥, 취미, 관심사, 휴일 활동, 동아리, 동호회)",
+                "개인 및 관계 (가족관계, 고향 등 개인의 신상, 인간 관계 등)", "날씨와 계절", "미용과 건강 (질병과 치료, 운동, 다이어트, 미용)",
+                "전공/전문 지식"]
+
+    def get_num_labels(self):
+        return len(self.get_labels())
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training, dev and test sets."""
+        # for debugging
+        # N = 70
+        # lines = lines[:N]
+
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[1]
+            text_b = None
+            label = line[2]
+            # label = None if set_type == "test" else line[4]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
 text_classification_processors = {
-    "turn_change" : TurnChangeProcessor
+    "turn_change" : TurnChangeProcessor,
+    "topic" : TopicProcessor
 }

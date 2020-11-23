@@ -8,14 +8,43 @@ from tqdm.auto import tqdm
 
 from common.utils import prepare_dir
 
-def build_turn_change_exmaple(origin_ex, first_sentence_num):
+
+def build_turn_change_example_all(origin_ex):
     id = origin_ex["id"]
     document = origin_ex["document"]
     assert (len(document) == 1), "Document has more than two data at {}".format(id)
 
     examples = []
     utterances = document[0]["utterance"]
-    for u_idx in range(0, (len(utterances)-first_sentence_num-1), sentence_num):
+
+    input_utterances, target_utterance = utterances[:-1], utterances[-1]
+
+    input_ids = [v["id"] for v in input_utterances]
+    input_text = ""
+    for v in input_utterances:
+        text = v["form"].replace("\n", " ")
+        input_text = input_text + " " + text
+    last_speaker = input_utterances[-1]["speaker_id"]
+
+    target_id = target_utterance["id"]
+    target_text = target_utterance["form"].replace("\n", " ")
+    target_speaker = target_utterance["speaker_id"]
+
+    label = 0 if last_speaker == target_speaker else 1  # speaker가 같으면 0, 틀리면 1
+    example = [input_ids, target_id, input_text, target_text, label]
+    examples.append(example)
+
+    return examples
+
+
+def build_turn_change_example_params(origin_ex, sentence_num):
+    id = origin_ex["id"]
+    document = origin_ex["document"]
+    assert (len(document) == 1), "Document has more than two data at {}".format(id)
+
+    examples = []
+    utterances = document[0]["utterance"]
+    for u_idx in range(0, (len(utterances)-sentence_num-1), sentence_num):
         input_utterances, target_utterance = utterances[u_idx:(u_idx+sentence_num-1)], utterances[u_idx+sentence_num-1]
 
         target_id = target_utterance["id"]
@@ -129,6 +158,22 @@ def buil_turn_change_example_previous(origin_ex):
 
     return examples
 
+def build_topic_example(origin_ex, sentence_num=None):
+    id = origin_ex["id"]
+    document = origin_ex["document"]
+    assert (len(document) == 1), "Document has more than two data at {}".format(id)
+
+    utterances = document[0]["utterance"]
+    topic = document[0]["metadata"]["topic"]
+
+    merged_text = ""
+    for utterance in utterances:
+        utterance_text = utterance["form"].replace("\n", " ")
+        merged_text = merged_text + " " + utterance_text
+
+    example = [[id, merged_text, topic]]
+    return example
+
 def build_examples(fns, task, task_process_function, task_column_names, sentence_num):
     in_fn = fns["input"]
     to_fn = fns["output"]
@@ -144,7 +189,9 @@ def build_examples(fns, task, task_process_function, task_column_names, sentence
         data_iterator = tqdm(original_data, desc="Iteration")
         for ex_idx, ex in enumerate(data_iterator):
             data = data + task_process_function[task](ex, sentence_num)
+            # data = data + task_process_function[task](ex)
 
+    print("Number of Examples : {}".format(len(data)))
     df = pd.DataFrame(data, columns=task_column_names[task])
 
     df.to_csv(to_fn, index=False, sep="\t")
@@ -163,6 +210,7 @@ if __name__ == '__main__':
     sentence_num = args.sentence_num
 
     in_folder = os.path.join("./", "original-all")
+    # to_folder = os.path.join("./", task + "_temp")
     to_folder = os.path.join("./", task)
     prepare_dir(to_folder)
 
@@ -172,11 +220,13 @@ if __name__ == '__main__':
     }
 
     task_process_function = {
-        "turn_change" : build_turn_change_exmaple
+        "turn_change" : build_turn_change_example_params,
+        "topic" : build_topic_example
     }
     task_column_names = {
-        "turn_change" : ["utterance1_ids", "utterance2_id", "utterance1", "utterance2", "label"]
+        "turn_change" : ["utterance1_ids", "utterance2_id", "utterance1", "utterance2", "label"],
         # "turn_change": ["utterance1_ids", "utterance2_id", "label"]
+        "topic" : ["id", "text", "topic"]
     }
 
     build_examples(fns, task, task_process_function, task_column_names, sentence_num)
