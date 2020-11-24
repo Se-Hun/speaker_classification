@@ -23,6 +23,7 @@ if __name__ == '__main__':
                         help="The maximum total input sequence length after WordPiece tokenization. \n"
                              "Sequences longer than this will be truncated, and sequences shorter \n"
                              "than this will be padded.") # bert has 512 tokens.
+    parser.add_argument("--min_epochs", help="min_epochs", type=int, default=10)
     parser.add_argument("--batch_size", help="batch_size", type=int, default=32)
     parser.add_argument("--seed", help='seed', type=int, default=42)
 
@@ -63,8 +64,9 @@ if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     # init pytorch lightning trainer -----------------------------------------------------------------------------------
-    trainer = pl.Trainer(gpus= ["1", "4"], #args.gpu_id,
+    trainer = pl.Trainer(gpus=args.gpu_id,
                          logger=tb_logger,
+                         min_epochs=args.min_epochs,
                          callbacks=[early_stop_callback])
 
     # training and testing ---------------------------------------------------------------------------------------------
