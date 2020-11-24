@@ -1,12 +1,63 @@
 import os
 import json
 import argparse
+from string import ascii_uppercase
 
 import pandas as pd
 
 from tqdm.auto import tqdm
 
 from common.utils import prepare_dir
+
+def build_turn_change_final(origin_ex, sentence_num):
+    id = origin_ex["id"]
+    document = origin_ex["document"][0]
+
+    speaker_num = len(document["metadata"]["speaker"])
+    speaker_tokens = list(ascii_uppercase)[:speaker_num] # A, B, ...
+    speaker_id_to_tokens = {str(k+1) : v for k, v in enumerate(speaker_tokens)}
+
+    examples = []
+    utterances = document["utterance"]
+    for u_idx in range(0, (len(utterances)-sentence_num-1), sentence_num):
+        input_utterances, target_utterance = utterances[u_idx:(u_idx + sentence_num - 1)], utterances[u_idx + sentence_num - 1]
+
+        input_id_list = []
+        input_text_list = []
+        input_speaker_list = []
+        for input_utterance in input_utterances:
+            # remove typo error
+            if input_utterance["speaker_id"] not in list(speaker_id_to_tokens.keys()):
+                break
+
+            text = input_utterance["form"].replace("\n", " ")
+            speaker = speaker_id_to_tokens[input_utterance["speaker_id"]]
+
+            # remove data using emoticon, uploading photos ect...
+            if text == "":
+                break
+
+            input_id_list.append(input_utterance["id"])
+            input_text_list.append(text)
+            input_speaker_list.append(speaker)
+
+        target_text = target_utterance["form"].replace("\n", " ")
+        input_text = ",".join("{}({})".format(t, v) for t, v in zip(input_speaker_list, input_text_list))
+
+        # remove data using emoticon, uploading photos ect...
+        if (len(input_id_list) != (sentence_num - 1)) or target_text == "":
+            continue
+
+        target_id = target_utterance["id"]
+        target_speaker = speaker_id_to_tokens[target_utterance["speaker_id"]]
+
+        last_speaker = input_speaker_list[-1]
+        label = 0 if target_speaker == last_speaker else 1  # speaker가 같으면 0, 틀리면 1
+
+        example = [input_id_list, target_id, input_text, target_text, label]
+        examples.append(example)
+
+    return examples
 
 
 def build_turn_change_example_all(origin_ex):
@@ -175,6 +226,13 @@ def build_topic_example(origin_ex, sentence_num=None):
     return example
 
 def build_examples(fns, task, task_process_function, task_column_names, sentence_num):
+    # useful_labels = ["일상", "교육 및 학교 (교과목, 진로, 입시, 성적, 스터디)", "주거와 생활 (집안일, 육아, 부동산, 경제 활동, 생활 정보)",
+    #                  "예술, 문화 생활 (문학, 음악, 미술, 공연, 전시, 관람)", "교통 (위치, 거리, 이동 수단, 대중교통)",
+    #                  "식음료 (식사, 음식, 배달, 맛집, 요리)", "시사, 사회 (정치, 경제, 여론, 사건과 사고)",
+    #                  "일과 직업 (취업, 스펙, 업무, 급여, 회의)", "상거래(쇼핑)", "여행 (여행지, 계획 등)",
+    #                  "여가와 오락 (유흥, 취미, 관심사, 휴일 활동, 동아리, 동호회)", "개인 및 관계 (가족관계, 고향 등 개인의 신상, 인간 관계 등)",
+    #                  "날씨와 계절", "미용과 건강 (질병과 치료, 운동, 다이어트, 미용)"]
+
     in_fn = fns["input"]
     to_fn = fns["output"]
 
@@ -188,6 +246,9 @@ def build_examples(fns, task, task_process_function, task_column_names, sentence
 
         data_iterator = tqdm(original_data, desc="Iteration")
         for ex_idx, ex in enumerate(data_iterator):
+            # for removing unnecessary labels
+            # if task == "topic" and not ex["document"][0]["metadata"]["topic"] in useful_labels:
+            #     continue
             data = data + task_process_function[task](ex, sentence_num)
             # data = data + task_process_function[task](ex)
 
@@ -220,7 +281,7 @@ if __name__ == '__main__':
     }
 
     task_process_function = {
-        "turn_change" : build_turn_change_example_params,
+        "turn_change" : build_turn_change_final,
         "topic" : build_topic_example
     }
     task_column_names = {

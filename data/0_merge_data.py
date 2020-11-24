@@ -16,6 +16,18 @@ def build_data(fns):
         with open(fn, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
+            if data["id"] == "MDRW1900006926": # modify typo ....
+                # utterances = data["document"][0]["utterance"]
+                # new_utterances = []
+                # for utterance in utterances:
+                #     if utterance["speaker_id"] == "2️" or utterance["speaker_id"] == "2":
+                #         utterance["speaker_id"] == "2"
+                #     new_utterances.append(utterance)
+                # data["document"][0]["utterance"] = new_utterances
+                #
+                # print("hi")
+                continue
+
             all_data.append(data)
 
     print("Number of data : {}".format(len(all_data)))
