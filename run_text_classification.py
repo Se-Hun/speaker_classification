@@ -71,8 +71,8 @@ if __name__ == '__main__':
                          logger=tb_logger,
                          check_val_every_n_epoch=1,
                          val_check_interval=1.0,
-                         max_epochs=args.max_epochs,
-                         min_epochs=args.min_epochs,
+                         # max_epochs=args.max_epochs,
+                         # min_epochs=args.min_epochs,
                          callbacks=[early_stop_callback])
 
     # training and testing ---------------------------------------------------------------------------------------------
