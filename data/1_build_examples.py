@@ -9,6 +9,113 @@ from tqdm.auto import tqdm
 
 from common.utils import prepare_dir
 
+def build_turn_change_with_window(origin_ex, window_size):
+    id = origin_ex["id"]
+    document = origin_ex["document"][0]
+
+    speaker_num = len(document["metadata"]["speaker"])
+    speaker_tokens = list(ascii_uppercase)[:speaker_num]  # A, B, ...
+    speaker_id_to_tokens = {str(k + 1): v for k, v in enumerate(speaker_tokens)}
+
+    examples = []
+    utterances = document["utterance"]
+    for u_idx, utterance in enumerate(utterances):
+        if (u_idx+window_size) >= len(utterances):
+            break
+
+        input_queue = list(reversed(utterances[u_idx:(u_idx+window_size)])) # for _truncate_seq_pair() function
+
+        id_list = []
+        speaker_list = []
+        text_list = []
+        while len(input_queue) != 0:
+            u = input_queue.pop(0)
+
+            id = u["id"]
+            speaker_id = u["speaker_id"]
+            text = u["form"].replace("\n", " ")
+            if speaker_id not in list(speaker_id_to_tokens.keys()): # check typo
+                break
+            if text == "": # remove special messages [ex) emotion, upload photo, etc...]
+                break
+            speaker = speaker_id_to_tokens[speaker_id]
+
+            id_list.append(id)
+            text_list.append(text)
+            speaker_list.append(speaker)
+
+        if len(input_queue) > 0: # validation data for checking typo, special messages
+            continue
+
+        input_text = ",".join("{}({})".format(t, v) for t, v in zip(speaker_list, text_list))
+        last_speaker = speaker_list[0]
+
+        target_utterance = utterances[u_idx+window_size]
+        target_id = target_utterance["id"]
+        target_speaker_id = target_utterance["speaker_id"]
+        label = -1
+        if (target_speaker_id not in list(speaker_id_to_tokens.keys())):
+            label = 1 # 리스트에도 없으면 화자가 다른 것이므로
+        elif speaker_id_to_tokens[target_speaker_id] != last_speaker:
+            label = 1 # 화자가 다름
+        else:
+            label = 0 # 화자가 같음
+
+        example = [id_list, target_id, input_text, label]
+        examples.append(example)
+
+    return examples
+
+def build_turn_change_final2(origin_ex, sentence_num):
+    id = origin_ex["id"]
+    document = origin_ex["document"][0]
+
+    speaker_num = len(document["metadata"]["speaker"])
+    speaker_tokens = list(ascii_uppercase)[:speaker_num]  # A, B, ...
+    speaker_id_to_tokens = {str(k + 1): v for k, v in enumerate(speaker_tokens)}
+
+    examples = []
+    utterances = document["utterance"]
+    for u_idx in range(0, (len(utterances) - sentence_num - 1), sentence_num):
+        input_utterances = utterances[u_idx:(u_idx + sentence_num)]
+
+        input_id_list = []
+        input_text_list = []
+        input_speaker_list = []
+        for input_utterance in input_utterances:
+            # remove typo error
+            if input_utterance["speaker_id"] not in list(speaker_id_to_tokens.keys()):
+                break
+
+            text = input_utterance["form"].replace("\n", " ")
+            speaker = speaker_id_to_tokens[input_utterance["speaker_id"]]
+
+            # remove data using emoticon, uploading photos ect...
+            if text == "":
+                break
+
+            input_id_list.append(input_utterance["id"])
+            input_text_list.append(text)
+            input_speaker_list.append(speaker)
+
+        # remove data using emoticon, uploading photos ect...
+        if (len(input_id_list) != sentence_num):
+            continue
+
+        target_text = input_text_list[-1]
+        input_text = ",".join("{}({})".format(t, v) for t, v in zip(input_speaker_list, input_text_list))
+
+        target_id = input_id_list[-1]
+        target_speaker = input_speaker_list[-1]
+
+        last_speaker = input_speaker_list[-1]
+        label = 0 if target_speaker == last_speaker else 1  # speaker가 같으면 0, 틀리면 1
+
+        example = [input_id_list, target_id, input_text, target_text, label]
+        examples.append(example)
+
+    return examples
+
 def build_turn_change_final(origin_ex, sentence_num):
     id = origin_ex["id"]
     document = origin_ex["document"][0]
@@ -271,8 +378,8 @@ if __name__ == '__main__':
     sentence_num = args.sentence_num
 
     in_folder = os.path.join("./", "original-all")
-    # to_folder = os.path.join("./", task + "_temp")
     to_folder = os.path.join("./", task)
+    # to_folder = os.path.join("./", task + "_temp")
     prepare_dir(to_folder)
 
     fns = {
@@ -281,11 +388,11 @@ if __name__ == '__main__':
     }
 
     task_process_function = {
-        "turn_change" : build_turn_change_final,
+        "turn_change" : build_turn_change_with_window,
         "topic" : build_topic_example
     }
     task_column_names = {
-        "turn_change" : ["utterance1_ids", "utterance2_id", "utterance1", "utterance2", "label"],
+        "turn_change" : ["context_utterance_ids", "target_utterance_id", "context", "label"],
         # "turn_change": ["utterance1_ids", "utterance2_id", "label"]
         "topic" : ["id", "text", "topic"]
     }
