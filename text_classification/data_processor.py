@@ -239,7 +239,9 @@ class TurnChangeProcessor(DataProcessor):
         # for debugging
         # N = 40
         N = 40000
+        # N = len(lines) // 4
         lines = lines[:N]
+        print("Number of {} Examples : {}".format(set_type, len(lines)))
 
         examples = []
         for (i, line) in enumerate(lines):
@@ -247,8 +249,8 @@ class TurnChangeProcessor(DataProcessor):
                 continue
             guid = "%s-%s" % (set_type, i)
             text_a = line[2]
-            text_b = line[3]
-            label = line[4]
+            text_b = None
+            label = line[3]
             # label = None if set_type == "test" else line[4]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
