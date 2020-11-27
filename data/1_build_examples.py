@@ -24,6 +24,7 @@ def build_turn_change_with_window(origin_ex, window_size):
             break
 
         input_queue = list(reversed(utterances[u_idx:(u_idx+window_size)])) # for _truncate_seq_pair() function
+        # input_queue = utterances[u_idx:(u_idx+window_size)] # reverse 제거하고 돌려보자.
 
         id_list = []
         speaker_list = []
@@ -44,7 +45,7 @@ def build_turn_change_with_window(origin_ex, window_size):
             text_list.append(text)
             speaker_list.append(speaker)
 
-        if len(input_queue) > 0: # validation data for checking typo, special messages
+        if (len(input_queue) > 0) or (len(id_list) != window_size): # validation data for checking typo, special messages
             continue
 
         input_text = ",".join("{}({})".format(t, v) for t, v in zip(speaker_list, text_list))
@@ -54,7 +55,7 @@ def build_turn_change_with_window(origin_ex, window_size):
         target_id = target_utterance["id"]
         target_speaker_id = target_utterance["speaker_id"]
         label = -1
-        if (target_speaker_id not in list(speaker_id_to_tokens.keys())):
+        if target_speaker_id not in list(speaker_id_to_tokens.keys()):
             label = 1 # 리스트에도 없으면 화자가 다른 것이므로
         elif speaker_id_to_tokens[target_speaker_id] != last_speaker:
             label = 1 # 화자가 다름
