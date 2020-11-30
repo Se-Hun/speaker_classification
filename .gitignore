@@ -133,6 +133,7 @@ dmypy.json
 *.pdf
 *.tsv
 *.csv
+*.vocab
 
 # for pycharm
 .idea/
