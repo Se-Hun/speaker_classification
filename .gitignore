@@ -137,5 +137,6 @@ dmypy.json
 # for pycharm
 .idea/
 
-# for tensorboard
-tb/
+# for logging, model files
+lightning_logs/
+model/
