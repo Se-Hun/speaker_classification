@@ -363,7 +363,7 @@ def build_examples(fns, task, task_process_function, task_column_names, sentence
     print("Number of Examples : {}".format(len(data)))
     df = pd.DataFrame(data, columns=task_column_names[task])
 
-    df.to_csv(to_fn, index=False, sep="\t")
+    df.to_csv(to_fn, index=False, header=False, sep="\t")
     print("{} data is dumped at ".format(task), to_fn)
 
 
