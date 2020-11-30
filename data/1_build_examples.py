@@ -54,13 +54,13 @@ def build_turn_change_with_window(origin_ex, window_size):
         target_utterance = utterances[u_idx+window_size]
         target_id = target_utterance["id"]
         target_speaker_id = target_utterance["speaker_id"]
-        label = -1
+        label = "-1"
         if target_speaker_id not in list(speaker_id_to_tokens.keys()):
-            label = 1 # 리스트에도 없으면 화자가 다른 것이므로
+            label = "1" # 리스트에도 없으면 화자가 다른 것이므로
         elif speaker_id_to_tokens[target_speaker_id] != last_speaker:
-            label = 1 # 화자가 다름
+            label = "1" # 화자가 다름
         else:
-            label = 0 # 화자가 같음
+            label = "0" # 화자가 같음
 
         example = [id_list, target_id, input_text, label]
         examples.append(example)
@@ -110,7 +110,7 @@ def build_turn_change_final2(origin_ex, sentence_num):
         target_speaker = input_speaker_list[-1]
 
         last_speaker = input_speaker_list[-1]
-        label = 0 if target_speaker == last_speaker else 1  # speaker가 같으면 0, 틀리면 1
+        label = "0" if target_speaker == last_speaker else "1"  # speaker가 같으면 0, 틀리면 1
 
         example = [input_id_list, target_id, input_text, target_text, label]
         examples.append(example)
@@ -160,7 +160,7 @@ def build_turn_change_final(origin_ex, sentence_num):
         target_speaker = speaker_id_to_tokens[target_utterance["speaker_id"]]
 
         last_speaker = input_speaker_list[-1]
-        label = 0 if target_speaker == last_speaker else 1  # speaker가 같으면 0, 틀리면 1
+        label = "0" if target_speaker == last_speaker else "1"  # speaker가 같으면 0, 틀리면 1
 
         example = [input_id_list, target_id, input_text, target_text, label]
         examples.append(example)
@@ -189,7 +189,7 @@ def build_turn_change_example_all(origin_ex):
     target_text = target_utterance["form"].replace("\n", " ")
     target_speaker = target_utterance["speaker_id"]
 
-    label = 0 if last_speaker == target_speaker else 1  # speaker가 같으면 0, 틀리면 1
+    label = "0" if last_speaker == target_speaker else "1"  # speaker가 같으면 0, 틀리면 1
     example = [input_ids, target_id, input_text, target_text, label]
     examples.append(example)
 
@@ -226,7 +226,7 @@ def build_turn_change_example_params(origin_ex, sentence_num):
         if (len(id_list) != (sentence_num-1)) or target_text == "":
             continue
 
-        label = 0 if last_speaker == target_utterance["speaker_id"] else 1  # speaker가 같으면 0, 틀리면 1
+        label = "0" if last_speaker == target_utterance["speaker_id"] else "1"  # speaker가 같으면 0, 틀리면 1
         example = [id_list, target_id, input_text, target_text, label]
         examples.append(example)
 
@@ -273,7 +273,7 @@ def build_turn_change_exmaple_document(origin_ex):
         if utterance_text == "":
             continue
 
-        label = 0 if prev_speaker_id == speaker_id else 1 # 마지막 speaker와 현재 speaker가 같으면 0, 틀리면 1
+        label = "0" if prev_speaker_id == speaker_id else "1" # 마지막 speaker와 현재 speaker가 같으면 0, 틀리면 1
 
         if u_idx == 0:
             # text_store = text_store + " " + utterance_text
@@ -306,7 +306,7 @@ def buil_turn_change_example_previous(origin_ex):
         second_id = second_utterance["id"]
         first_text = first_utterance["form"].replace("\n", " ")
         second_text = second_utterance["form"].replace("\n", " ")
-        label = 0 if first_utterance["speaker_id"] == second_utterance["speaker_id"] else 1 # speaker가 같으면 0, 틀리면 1
+        label = "0" if first_utterance["speaker_id"] == second_utterance["speaker_id"] else "1" # speaker가 같으면 0, 틀리면 1
 
         # remove data using emoticon, uploading photos ect...
         if first_text == "" or second_text == "":
@@ -363,7 +363,7 @@ def build_examples(fns, task, task_process_function, task_column_names, sentence
     print("Number of Examples : {}".format(len(data)))
     df = pd.DataFrame(data, columns=task_column_names[task])
 
-    df.to_csv(to_fn, index=False, header=False, sep="\t")
+    df.to_csv(to_fn, index=False, sep="\t")
     print("{} data is dumped at ".format(task), to_fn)
 
 
