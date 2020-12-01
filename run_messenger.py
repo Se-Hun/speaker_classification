@@ -20,37 +20,23 @@ class TextClassification(pl.LightningModule):
 
         # prepare text reader
         from utils.readers import get_text_reader
-        text_reader = get_text_reader(self.hparams.text_reader)
+        text_reader = get_text_reader(self.hparams.text_reader, num_labels)
         self.text_reader = text_reader
 
-        # dropout layer for preventing overfitting
-        self.dropout = nn.Dropout(0.1)
-
-        # to label class
-        self.to_class = nn.Linear(768, num_labels)
-
-    def forward(self, input_ids, token_type_ids, attention_mask):
-        # v_t is [CLS] vector
-        _, v_t = self.text_reader(
+    def forward(self, input_ids, token_type_ids, attention_mask, label_id):
+        output = self.text_reader(
             input_ids=input_ids.long(),
             token_type_ids=token_type_ids.long(),
-            attention_mask=attention_mask.float()
+            attention_mask=attention_mask.float(),
+            labels=label_id.long()
         )
 
-        # apply to dropout
-        v_t = self.dropout(v_t)
-
-        # Logit Vector --> Dimension : num labels
-        logits = self.to_class(v_t)
-
-        return logits
+        return output
 
     def training_step(self, batch, batch_idx):
         input_ids, token_type_ids, attention_mask, label_id = batch
 
-        logits = self(input_ids, token_type_ids, attention_mask)
-
-        loss = F.cross_entropy(logits, label_id.long())
+        loss, _ = self(input_ids, token_type_ids, attention_mask, label_id)
 
         result = {"loss": loss}
         return result
@@ -58,9 +44,8 @@ class TextClassification(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         input_ids, token_type_ids, attention_mask, label_id = batch
 
-        logits = self(input_ids, token_type_ids, attention_mask)
+        loss, logits = self(input_ids, token_type_ids, attention_mask, label_id)
 
-        loss = F.cross_entropy(logits, label_id.long())
         preds = torch.argmax(logits, dim=1)
 
         labels = label_id
@@ -82,7 +67,7 @@ class TextClassification(pl.LightningModule):
     def test_step(self, batch, batch_idx, dataloader_idx):
         input_ids, token_type_ids, attention_mask, label_id = batch
 
-        logits = self(input_ids, token_type_ids, attention_mask)
+        _, logits = self(input_ids, token_type_ids, attention_mask, label_id)
 
         preds = torch.argmax(logits, dim=1)
 
