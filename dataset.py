@@ -1,14 +1,10 @@
 import os
-import sys
 
 import numpy as np
 import pandas as pd
 
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
-
-# sys.path.append()
-sys.path.append(os.path.join(os.getcwd(), "utils"))
 
 # Dataset Builders -----------------------------------------------------------------------------------------------------
 class TurnChangeDataset(Dataset):
@@ -20,10 +16,12 @@ class TurnChangeDataset(Dataset):
 
         # for debugging -- to smallset
         # N = 70
-        # N = 400000
-        # df = df[:N]
+        N = len(df) // 5
+        # N = 40000
+        df = df[:N]
 
         # transform all data
+        print("Dataset Length is {}".format(len(df)))
         from tqdm.auto import tqdm
         df_iterator = tqdm(df.iterrows(), desc="Iteration")
 

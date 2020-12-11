@@ -4,8 +4,6 @@ import platform
 from glob import glob
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
 
@@ -82,7 +80,7 @@ class TextClassification(pl.LightningModule):
         correct_count = torch.sum(labels == preds)
         test_acc = correct_count.float() / float(len(labels))
 
-        self.log("val_acc", test_acc, prog_bar=True)
+        self.log("test_acc", test_acc, prog_bar=True)
         return test_acc
 
     def configure_optimizers(self):
@@ -125,7 +123,7 @@ def main():
                         help="Whether to test on test dataset.")
 
     # model specific -------------------------------------------------------------------------------
-    parser.add_argument("--text_reader", help="bert, kobert, koelectra, others, ...", default="bert")
+    parser.add_argument("--text_reader", help="bert, kobert, kcbert, koelectra, others, ...", default="bert")
 
     # experiment settings --------------------------------------------------------------------------
     parser.add_argument("--max_seq_length", default=128, type=int,
