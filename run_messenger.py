@@ -62,7 +62,7 @@ class TextClassification(pl.LightningModule):
         self.log("val_acc", val_acc, prog_bar=True)
         return loss
 
-    def test_step(self, batch, batch_idx, dataloader_idx):
+    def test_step(self, batch, batch_idx):
         input_ids, token_type_ids, attention_mask, label_id = batch
 
         _, logits = self(input_ids, token_type_ids, attention_mask, label_id)
