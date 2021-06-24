@@ -16,8 +16,12 @@ def get_text_reader(reader_name, num_labels):
         model_name = "beomi/kcbert-base"
         text_reader = BertForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
 
-    elif reader_name == "koelectra":
-        model_name = "monologg/koelectra-base-discriminator"
+    elif reader_name == "koelectra-v2":
+        model_name = "monologg/koelectra-base-v2-discriminator"
+        text_reader = ElectraForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
+
+    elif reader_name == "koelectra-v3":
+        model_name = "monologg/koelectra-base-v3-discriminator"
         text_reader = ElectraForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
 
     else:
@@ -42,9 +46,14 @@ def get_tokenizer(reader_name):
         model_name = "beomi/kcbert-base"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    elif reader_name == "koelectra":
+    elif reader_name == "koelectra-v2":
         from transformers import ElectraTokenizer
-        model_name = "monologg/koelectra-base-discriminator"
+        model_name = "monologg/koelectra-base-v2-discriminator"
+        tokenizer = ElectraTokenizer.from_pretrained(model_name)
+
+    elif reader_name == "koelectra-v3":
+        from transformers import ElectraTokenizer
+        model_name = "monologg/koelectra-base-v3-discriminator"
         tokenizer = ElectraTokenizer.from_pretrained(model_name)
 
     else:
