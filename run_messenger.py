@@ -6,6 +6,7 @@ from glob import glob
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.loggers import TensorBoardLogger
 
 class TextClassification(pl.LightningModule):
     def __init__(self,
@@ -145,15 +146,6 @@ def main():
     dm.prepare_data()
     # ------------------------------------------------------------------------------------------------------------------
 
-    # Model Checkpoint -------------------------------------------------------------------------------------------------
-    from pytorch_lightning.callbacks import ModelCheckpoint
-    model_name = '{}'.format(args.text_reader)
-    model_folder = './model/{}/{}'.format(args.task, model_name)
-    checkpoint_callback = ModelCheckpoint(monitor='val_loss',
-                                          dirpath=model_folder,
-                                          filename='{epoch:02d}-{val_loss:.2f}')
-    # ------------------------------------------------------------------------------------------------------------------
-
     # Early Stopping ---------------------------------------------------------------------------------------------------
     early_stop_callback = EarlyStopping(
         monitor="val_loss",
@@ -163,9 +155,12 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------
 
     # Trainer ----------------------------------------------------------------------------------------------------------
+    model_name = '{}'.format(args.text_reader)
+    model_folder = './model/{}/{}'.format(args.task, model_name)
+
     trainer = pl.Trainer(
         gpus=args.gpu_id if platform.system() != 'Windows' else 1,  # <-- for dev. pc
-        checkpoint_callback=checkpoint_callback,
+        logger=TensorBoardLogger(model_folder, name='{}'.format(args.model_type)),
         callbacks=[early_stop_callback]
     )
     # ------------------------------------------------------------------------------------------------------------------
